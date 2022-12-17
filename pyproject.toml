@@ -1,0 +1,23 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "dictaclass"
+version = "0.0.1"
+authros = [
+    { name = "Bozhidar Stoyanov", email="glav0r3zzz4@gmail.com"}
+]
+description = "Convert heirarchies of dicts/list/sets/values (JSON?) to heirarchies of type annotated dataclasses."
+readme = "README.md"
+requires-python = ">=3.7.2"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/BraynStorm/dictaclass"
+"Bug Tracker" = "https://github.com/BraynStorm/dictaclass/issues"
+
