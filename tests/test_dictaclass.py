@@ -262,3 +262,17 @@ class Test_Dictaclass:
         assert v.first == "a"
         assert v.last == "b"
         assert not hasattr(v, "middle")
+
+
+class Test_Dictaclass_NameTransform:
+    def test_to_snake_case_flat(self):
+        import inflection
+
+        @dataclass(frozen=True)
+        class ExampleDC:
+            url_encoded: str
+
+        v = to_dataclass(ExampleDC, dict(UrlEncoded="asdf"), inflection.camelize)
+
+        assert isinstance(v, ExampleDC)
+        assert v.url_encoded == "asdf"
