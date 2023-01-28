@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "dictaclass"
-version = "0.1.0"
+version = "0.2.0"
 authros = [
     { name = "Bozhidar Stoyanov", email="glav0r3zzz4@gmail.com"}
 ]
