@@ -2,7 +2,7 @@ from dictaclass.dictaclass import to_dataclass
 
 from dataclasses import dataclass
 
-from typing import Dict, List, Set
+from typing import Any, Dict, List, Set, Tuple, Type
 
 
 class Test_Dictaclass:
@@ -251,17 +251,63 @@ class Test_Dictaclass:
         assert len(v.pairs) == 2
         assert v.pairs == {PairPair(Pair("f0", "l0")), PairPair(Pair("f1", "l1"))}
 
-    def test_with_extra_fields(self):
+    def test_flat_with_extra_fields(self):
         @dataclass(frozen=True)
         class Pair:
             first: str
             last: str
 
-        v = to_dataclass(Pair, {"first": "a", "last": "b", "middle": "lol"})
+        extras = []
+        v = to_dataclass(
+            Pair,
+            {"first": "a", "last": "b", "middle": "lol"},
+            on_extra_field=lambda klass, field_name, field_value: extras.append(
+                (klass, field_name, field_value)
+            ),
+        )
         assert isinstance(v, Pair)
         assert v.first == "a"
         assert v.last == "b"
         assert not hasattr(v, "middle")
+        assert extras == [
+            (Pair, "middle", "lol"),
+        ]
+
+    def test_nested_with_extra_fields(self):
+        @dataclass(frozen=True)
+        class C:
+            num: int
+
+        @dataclass(frozen=True)
+        class B:
+            c: C
+
+        @dataclass(frozen=True)
+        class A:
+            b: B
+
+        extras: List[Tuple[Type[Any], str, Any]] = []
+
+        def on_extra_field(*args):
+            extras.append(args)
+
+        a = to_dataclass(
+            A,
+            dict(b=dict(c=dict(num=10, extra_num=11), extra_num=12), extra_num=13),
+            on_extra_field=on_extra_field,
+        )
+        assert isinstance(a, A)
+        assert isinstance(a.b, B)
+        assert isinstance(a.b.c, C)
+        assert not hasattr(a, "extra_num")
+        assert not hasattr(a.b, "extra_num")
+        assert not hasattr(a.b.c, "extra_num")
+        assert len(extras) == 3
+        assert extras == [
+            (C, "extra_num", 11),
+            (B, "extra_num", 12),
+            (A, "extra_num", 13),
+        ]
 
 
 class Test_Dictaclass_NameTransform:
