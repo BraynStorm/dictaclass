@@ -1,0 +1,7 @@
+**/.mypy_cache
+**/.pytest_cache
+**/.vscode
+**/__pycache__
+**/.venv
+dist/
+tests/test_meta.py

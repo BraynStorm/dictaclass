@@ -1,4 +1,4 @@
-from typing import Any, Dict, Type, TypeVar, List, Set, Dict, Callable
+from typing import Any, Dict, Optional, Type, TypeVar, List, Set, Dict, Callable
 from dataclasses import is_dataclass, asdict
 
 import sys
@@ -75,7 +75,14 @@ def _to_dataclass_37(
 
     dataclass_dict: Dict[str, Any] = dict()
 
-    for annotation_name, annotation_type in dataclass_type.__annotations__.items():
+    annotations = dict()
+    for c in dataclass_type.mro():
+        try:
+            annotations.update(c.__annotations__)
+        except AttributeError:
+            pass
+
+    for annotation_name, annotation_type in annotations.items():
         try:
             dict_value = data[key_transformer(annotation_name)]
         except KeyError:
@@ -121,7 +128,7 @@ def _to_dataclass_37(
 def to_dataclass(
     dataclass_type: Type[T],
     data: Any,
-    key_transformer: Callable[[str], str] | None = None,
+    key_transformer: Optional[Callable[[str], str]] = None,
 ) -> T:
     """
     Convert nested dicts/lists to a dataclass structure.
