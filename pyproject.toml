@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "dictaclass"
 version = "0.3.0"
-authros = [
+authors = [
     { name = "Bozhidar Stoyanov", email="glav0r3zzz4@gmail.com"}
 ]
 description = "Convert heirarchies of dicts/list/sets/values (JSON?) to heirarchies of type annotated dataclasses."
