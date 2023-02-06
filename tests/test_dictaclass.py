@@ -2,7 +2,9 @@ from dictaclass.dictaclass import to_dataclass
 
 from dataclasses import dataclass
 
-from typing import Any, Dict, List, Set, Tuple, Type
+from typing import Any, Dict, List, Optional, Set, Tuple, Type, Union
+
+import pytest
 
 
 class Test_Dictaclass:
@@ -308,6 +310,71 @@ class Test_Dictaclass:
             (B, "extra_num", 12),
             (A, "extra_num", 13),
         ]
+
+
+class Test_Dataclass_Optional:
+    def test_flat_with_implicit_optional(self):
+        @dataclass
+        class Example:
+            a: int
+            b: Dict[str, str]
+            c: List[str]
+            d: Set[str]
+
+        r = to_dataclass(
+            Example, dict(a=None, b=None, c=None, d=None), implicit_optional=True
+        )
+        assert isinstance(r, Example)
+        assert r.a is None
+        assert r.b is None
+        assert r.c is None
+        assert r.d is None
+
+        with pytest.raises(AssertionError):
+            r = to_dataclass(
+                Example, dict(a=None, b=None, c=None, d=None), implicit_optional=False
+            )
+
+    def test_flat_with_explicit_optional(self):
+        @dataclass
+        class Example:
+            a: Optional[int]
+            b: Optional[Dict[str, str]]
+            c: Optional[List[str]]
+            d: Optional[Set[str]]
+
+        r = to_dataclass(
+            Example, dict(a=None, b=None, c=None, d=None), implicit_optional=False
+        )
+        assert isinstance(r, Example)
+        assert r.a is None
+        assert r.b is None
+        assert r.c is None
+        assert r.d is None
+
+        r = to_dataclass(Example, dict(a=1, b={}, c=[], d=[]), implicit_optional=False)
+        assert isinstance(r, Example)
+        assert r.a == 1
+        assert r.b == {}
+        assert r.c == []
+        assert r.d == set()
+
+    def test_nested_with_explicit_optional(self):
+        @dataclass
+        class ExampleG:
+            a: int
+
+        @dataclass
+        class Example:
+            g: Optional[ExampleG]
+
+        r = to_dataclass(Example, dict(g=None))
+        assert isinstance(r, Example)
+        assert r.g is None
+
+        r = to_dataclass(Example, dict(g=dict(a=10)))
+        assert isinstance(r, Example)
+        assert r.g.a == 10
 
 
 class Test_Dictaclass_NameTransform:

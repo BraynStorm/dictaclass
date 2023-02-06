@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional, Type, TypeVar, List, Set, Dict, Callable
+from typing import Any, Dict, Type, TypeVar, List, Set, Dict, Callable, Union, Optional
 from dataclasses import is_dataclass, asdict
 
 import sys
@@ -19,6 +19,7 @@ def _to_dataclass_38(
     data: Any,
     key_transformer: Callable[[str], str],
     on_extra_field: Callable[[Type, str, Any], None],
+    implicit_optional: bool,
 ) -> T:
     from typing import get_args, get_type_hints, get_origin
 
@@ -43,17 +44,40 @@ def _to_dataclass_38(
             #   The current code is safe but will raise less readable exceptions.
             continue
 
+        optional = implicit_optional
         origin = get_origin(annotation_type)
+        if origin is Union:
+            args = list(get_args(annotation_type))
+            len_args = len(args)
+            type_none = type(None)
+            optional = type_none in args
+
+            assert len_args == 2 and optional, "dictaclass doesn't support real Unions."
+            args.remove(type_none)
+
+            annotation_type = args[0]
+            origin = get_origin(annotation_type)
+
+        if dict_value is None:
+            assert optional, f"dictaclass key '{key}' is not optional."
+
+            dataclass_dict[annotation_name] = None
+            continue
+
         if origin is set:
             value_type = get_args(annotation_type)[0]
             dataclass_dict[annotation_name] = set(
-                _to_dataclass_38(value_type, v, key_transformer, on_extra_field)
+                _to_dataclass_38(
+                    value_type, v, key_transformer, on_extra_field, implicit_optional
+                )
                 for v in dict_value
             )
         elif origin is list:
             value_type = get_args(annotation_type)[0]
             dataclass_dict[annotation_name] = [
-                _to_dataclass_38(value_type, v, key_transformer, on_extra_field)
+                _to_dataclass_38(
+                    value_type, v, key_transformer, on_extra_field, implicit_optional
+                )
                 for v in dict_value
             ]
         elif origin is dict:
@@ -61,13 +85,21 @@ def _to_dataclass_38(
             assert key_type == str
             dataclass_dict[annotation_name] = {
                 key: _to_dataclass_38(
-                    value_type, value, key_transformer, on_extra_field
+                    value_type,
+                    value,
+                    key_transformer,
+                    on_extra_field,
+                    implicit_optional,
                 )
                 for key, value in dict_value.items()
             }
         else:
             dataclass_dict[annotation_name] = _to_dataclass_38(
-                annotation_type, dict_value, key_transformer, on_extra_field
+                annotation_type,
+                dict_value,
+                key_transformer,
+                on_extra_field,
+                implicit_optional,
             )
 
     extra_keys = set(data.keys())
@@ -85,6 +117,7 @@ def _to_dataclass_37(
     data: Any,
     key_transformer: Callable[[str], str],
     on_extra_field: Callable[[Type, str, Any], None],
+    implicit_optional: bool,
 ) -> T:
     dict_value: Any
 
@@ -114,38 +147,88 @@ def _to_dataclass_37(
             #   The current code is safe but will raise less readable exceptions.
             continue
 
-        if (
-            isinstance(annotation_type, Set.__class__)
-            and annotation_type.__origin__ == set
-        ):
-            value_type = annotation_type.__args__[0]
-            dataclass_dict[annotation_name] = set(
-                _to_dataclass_37(value_type, v, key_transformer, on_extra_field)
-                for v in dict_value
-            )
-        elif (
-            isinstance(annotation_type, List.__class__)
-            and annotation_type.__origin__ == list
-        ):
-            value_type = annotation_type.__args__[0]
-            dataclass_dict[annotation_name] = [
-                _to_dataclass_37(value_type, v, key_transformer, on_extra_field)
-                for v in dict_value
-            ]
-        elif (
-            isinstance(annotation_type, Dict.__class__)
-            and annotation_type.__origin__ == dict
-        ):
-            key_type = annotation_type.__args__[0]
-            value_type = annotation_type.__args__[1]
-            assert key_type == str
-            dataclass_dict[annotation_name] = {
-                k: _to_dataclass_37(value_type, v, key_transformer, on_extra_field)
-                for k, v in dict_value.items()
-            }
+        optional = implicit_optional
+
+        # NOTE(braynstorm):
+        #   typing._GenericAlias is inaccessible, except:
+        #   - Dict.__class__ is typing._GenericAlias
+        #   - List.__class__ is typing._GenericAlias
+        #   - Set.__class__  is typing._GenericAlias
+        is_generic_alias = isinstance(annotation_type, List.__class__)
+
+        # NOTE(braynstorm):
+        #   Remap Optional[X](== Union[X, NoneType]) to X, and set `optional`.
+        if is_generic_alias:
+            if annotation_type.__origin__ is Union:
+                args = list(annotation_type.__args__)
+                type_none = type(None)
+                len_args = len(args)
+                optional = type_none in args
+
+                assert (
+                    len_args == 2 and optional
+                ), "dictaclass doesn't support real Unions."
+                args.remove(type_none)
+
+                annotation_type = args[0]
+                is_generic_alias = isinstance(annotation_type, List.__class__)
+
+        if dict_value is None:
+            assert optional, f"dictaclass key '{key}' is not optional."
+
+            dataclass_dict[annotation_name] = None
+            continue
+
+        if is_generic_alias:
+            origin = annotation_type.__origin__
+            args = annotation_type.__args__
+            if origin == set:
+                value_type = args[0]
+                dataclass_dict[annotation_name] = set(
+                    _to_dataclass_37(
+                        value_type,
+                        v,
+                        key_transformer,
+                        on_extra_field,
+                        implicit_optional,
+                    )
+                    for v in dict_value
+                )
+            elif origin == list:
+                value_type = args[0]
+                dataclass_dict[annotation_name] = [
+                    _to_dataclass_37(
+                        value_type,
+                        v,
+                        key_transformer,
+                        on_extra_field,
+                        implicit_optional,
+                    )
+                    for v in dict_value
+                ]
+            elif origin == dict:
+                key_type = args[0]
+                value_type = args[1]
+                assert key_type == str
+                dataclass_dict[annotation_name] = {
+                    k: _to_dataclass_37(
+                        value_type,
+                        v,
+                        key_transformer,
+                        on_extra_field,
+                        implicit_optional,
+                    )
+                    for k, v in dict_value.items()
+                }
+            else:
+                raise Exception(f"Unsupported typehint __origin__ = {origin}.")
         else:
             dataclass_dict[annotation_name] = _to_dataclass_37(
-                annotation_type, dict_value, key_transformer, on_extra_field
+                annotation_type,
+                dict_value,
+                key_transformer,
+                on_extra_field,
+                implicit_optional,
             )
 
     extra_keys = set(data.keys())
@@ -163,6 +246,7 @@ def to_dataclass(
     data: Any,
     key_transformer: Optional[Callable[[str], str]] = None,
     on_extra_field: Optional[Callable[[Type, str, Any], None]] = None,
+    implicit_optional: bool = False,
 ) -> T:
     """
     Convert nested dicts/lists to a dataclass structure.
@@ -203,6 +287,8 @@ def to_dataclass(
             Called when to_dataclass finds a field in a dictionary that is
             not requested by the dataclass it is filling.
             Args: the dataclass type, name of the field, value of the field.
+        implicit_optional (bool, optional:
+            When set to True, every field is interpreted as Optional[T].
     Returns:
         T: _description_
 
@@ -215,9 +301,21 @@ def to_dataclass(
         on_extra_field = _on_extra_field_noop
 
     if sys.version_info.minor >= 8:
-        return _to_dataclass_38(dataclass_type, data, key_transformer, on_extra_field)
+        return _to_dataclass_38(
+            dataclass_type,
+            data,
+            key_transformer,
+            on_extra_field,
+            implicit_optional,
+        )
     else:
-        return _to_dataclass_37(dataclass_type, data, key_transformer, on_extra_field)
+        return _to_dataclass_37(
+            dataclass_type,
+            data,
+            key_transformer,
+            on_extra_field,
+            implicit_optional,
+        )
 
 
 def dataclass_to_dict(dataclassObject: Any) -> Dict[str, Any]:
