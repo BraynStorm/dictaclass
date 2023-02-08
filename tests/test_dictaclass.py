@@ -8,7 +8,7 @@ import pytest
 
 
 class Test_Dictaclass:
-    def test_flat(self):
+    def test_flat(self) -> None:
         @dataclass(frozen=True)
         class ExampleDC:
             a: str
@@ -22,7 +22,7 @@ class Test_Dictaclass:
         assert v.b == 10
         assert v.c == 3.1415
 
-    def test_inheritance(self):
+    def test_inheritance(self) -> None:
         @dataclass(frozen=True)
         class Base:
             a: str
@@ -39,7 +39,7 @@ class Test_Dictaclass:
         assert v.b == 10
         assert v.c == 3.1415
 
-    def test_optional_values(self):
+    def test_optional_values(self) -> None:
         @dataclass(frozen=True)
         class Example:
             b: int
@@ -55,7 +55,7 @@ class Test_Dictaclass:
         assert v.b == 10
         assert v.c == 0
 
-    def test_with_primitive_list(self):
+    def test_with_primitive_list(self) -> None:
         @dataclass(frozen=True)
         class ExampleDC:
             a: str
@@ -68,7 +68,7 @@ class Test_Dictaclass:
         assert isinstance(v.b, list)
         assert v.b == [1, 2, 3]
 
-    def test_with_primitive_set(self):
+    def test_with_primitive_set(self) -> None:
         @dataclass(frozen=True)
         class ExampleDC:
             a: str
@@ -81,7 +81,7 @@ class Test_Dictaclass:
         assert isinstance(v.b, set)
         assert v.b == {1, 2, 3}
 
-    def test_with_primitive_dict(self):
+    def test_with_primitive_dict(self) -> None:
         @dataclass(frozen=True)
         class ExampleDC:
             a: str
@@ -94,7 +94,7 @@ class Test_Dictaclass:
         assert isinstance(v.b, dict)
         assert v.b == dict(a=1, b=2)
 
-    def test_with_nested_list(self):
+    def test_with_nested_list(self) -> None:
         @dataclass(frozen=True)
         class Pair:
             first: str
@@ -131,7 +131,7 @@ class Test_Dictaclass:
         assert v.pairs[1].first == "f1"
         assert v.pairs[1].last == "l1"
 
-    def test_with_nested_primitive_list(self):
+    def test_with_nested_primitive_list(self) -> None:
         @dataclass(frozen=True)
         class Object:
             pairs: List[List[str]]
@@ -155,7 +155,7 @@ class Test_Dictaclass:
             ["d", "e", "f"],
         ]
 
-    def test_with_nested_set(self):
+    def test_with_nested_set(self) -> None:
         @dataclass(frozen=True)
         class Pair:
             first: str
@@ -181,7 +181,7 @@ class Test_Dictaclass:
             Pair("f1", "l1"),
         }
 
-    def test_with_nested_dict(self):
+    def test_with_nested_dict(self) -> None:
         @dataclass(frozen=True)
         class Pair:
             first: str
@@ -218,7 +218,7 @@ class Test_Dictaclass:
         assert v.pairs["p1"].first == "f1"
         assert v.pairs["p1"].last == "l1"
 
-    def test_with_nested_set_2(self):
+    def test_with_nested_set_2(self) -> None:
         import json
 
         @dataclass(frozen=True)
@@ -253,7 +253,7 @@ class Test_Dictaclass:
         assert len(v.pairs) == 2
         assert v.pairs == {PairPair(Pair("f0", "l0")), PairPair(Pair("f1", "l1"))}
 
-    def test_flat_with_extra_fields(self):
+    def test_flat_with_extra_fields(self) -> None:
         @dataclass(frozen=True)
         class Pair:
             first: str
@@ -275,7 +275,7 @@ class Test_Dictaclass:
             (Pair, "middle", "lol"),
         ]
 
-    def test_nested_with_extra_fields(self):
+    def test_nested_with_extra_fields(self) -> None:
         @dataclass(frozen=True)
         class C:
             num: int
@@ -290,8 +290,8 @@ class Test_Dictaclass:
 
         extras: List[Tuple[Type[Any], str, Any]] = []
 
-        def on_extra_field(*args):
-            extras.append(args)
+        def on_extra_field(data_type: Type[Any], key: str, value: Any):
+            extras.append((data_type, key, value))
 
         a = to_dataclass(
             A,
@@ -313,7 +313,7 @@ class Test_Dictaclass:
 
 
 class Test_Dataclass_Optional:
-    def test_flat_with_implicit_optional(self):
+    def test_flat_with_implicit_optional(self) -> None:
         @dataclass
         class Example:
             a: int
@@ -335,7 +335,7 @@ class Test_Dataclass_Optional:
                 Example, dict(a=None, b=None, c=None, d=None), implicit_optional=False
             )
 
-    def test_flat_with_explicit_optional(self):
+    def test_flat_with_explicit_optional(self) -> None:
         @dataclass
         class Example:
             a: Optional[int]
@@ -359,7 +359,7 @@ class Test_Dataclass_Optional:
         assert r.c == []
         assert r.d == set()
 
-    def test_nested_with_explicit_optional(self):
+    def test_nested_with_explicit_optional(self) -> None:
         @dataclass
         class ExampleG:
             a: int
@@ -374,11 +374,12 @@ class Test_Dataclass_Optional:
 
         r = to_dataclass(Example, dict(g=dict(a=10)))
         assert isinstance(r, Example)
+        assert r.g is not None
         assert r.g.a == 10
 
 
 class Test_Dictaclass_NameTransform:
-    def test_to_snake_case_flat(self):
+    def test_to_snake_case_flat(self) -> None:
         import inflection
 
         @dataclass(frozen=True)
