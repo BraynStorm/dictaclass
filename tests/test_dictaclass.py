@@ -312,6 +312,40 @@ class Test_Dictaclass:
         ]
 
 
+class Test_Dictaclass_OrderedDict:
+    def test_with_nested_class(self) -> None:
+        from collections import OrderedDict
+
+        @dataclass(frozen=True)
+        class Child:
+            name: str
+            level: int
+
+        @dataclass(frozen=True)
+        class Parent:
+            child: Child
+
+        v = to_dataclass(
+            Parent,
+            OrderedDict(
+                {
+                    "child": OrderedDict(
+                        {
+                            "name": "asdf",
+                            "level": 10,
+                        }
+                    )
+                }
+            ),
+        )
+
+        assert isinstance(v, Parent)
+        assert v
+        assert v.child
+        assert v.child.name == "asdf"
+        assert v.child.level == 10
+
+
 class Test_Dataclass_Optional:
     def test_flat_with_implicit_optional(self) -> None:
         @dataclass

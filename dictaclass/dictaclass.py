@@ -1,4 +1,4 @@
-from typing import Any, Dict, Type, TypeVar, List, Set, Dict, Callable, Union, Optional
+from typing import Any, Dict, Type, TypeVar, List, Set, Dict, Callable, Union, Optional, get_type_hints
 from dataclasses import is_dataclass, asdict
 
 import sys
@@ -21,7 +21,7 @@ def _to_dataclass_38(
     on_extra_field: Callable[[Type, str, Any], None],
     implicit_optional: bool,
 ) -> T:
-    from typing import get_args, get_type_hints, get_origin
+    from typing import get_args, get_origin
 
     dict_value: Any
 
@@ -132,7 +132,7 @@ def _to_dataclass_37(
     annotations = dict()
     for c in dataclass_type.mro():
         try:
-            annotations.update(c.__annotations__)
+            annotations.update(get_type_hints(c))
         except AttributeError:
             pass
 
